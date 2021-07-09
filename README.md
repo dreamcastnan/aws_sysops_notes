@@ -1,5 +1,9 @@
 # AWS Sysops Notes
 
+## AWS Organization
+
+You can send an invite to existing accounts, to link them to the central organization.
+
 ## System Manager
 
 1. Document  
@@ -7,7 +11,7 @@
 2.
 ## AWS EventBridge
 
-Severless event bus connecting applications using event.
+Serverless event bus connecting applications using event.
 
 Needs proper permission to make api calls. For Lambda, Amazon SNS, Amazon SQS, and Amazon CloudWatch Logs resources, EventBridge relies on resource-based policies. For Kinesis streams, EventBridge relies on IAM roles.
 ## EC2
@@ -24,13 +28,13 @@ Spot **block** instance -  Spot instances with a specified duration
 
 ### AMI sharing
 
-1. can only share AMI have unencrypted volumes and volumes encrypeted with a customer-managed CMK
+1. can only share AMI have un-encrypted volumes and volumes encrypted with a customer-managed CMK
 2. CMK must be shared too.
 3. don't need to share the EBS snapshot that AMI references to share AMI.
 
 ## AWS Directory Services
 
-Default inbould rules allow 0.0.0.0/0 but it's not security concern.
+Default inbound rules allow 0.0.0.0/0 but it's not security concern.
 Refs: [AWS FAQ](https://aws.amazon.com/premiumsupport/faqs/)
 
 ## CloudFormation
@@ -52,7 +56,12 @@ Notes: If all nodes are unhealthy, ELB will route traffic to unhealthy nodes.
 ### __ELB for SysOps__
 
 1. static IP only for NLB
-2. support SSL for older browers: change LB security group to support a weaker cipher
+2. support SSL for older browsers: change LB security group to support a weaker cipher
+
+### To deploy a new app version to EC2 behind an ALB created by CloudFormation
+
+1. always try to update the resources deployed by CF by updating the stack, rather than updating resources directly
+2. Modify CF to use **AutoScalingReplacingUpdate** policy. Update the stack. Perform a second update wit the new release. **AutoScalingRollingUpdate policy** to control rolling update.
 
 ## __Auto Scaling Group__
 
@@ -66,14 +75,16 @@ You can not only define scaling policy based on aws metrics but also custom metr
 
 **ASG is free.**
 
+**Launch configuration is immutable, cannot update. Only recreate.**
+
 ### __ASG for SysOps__
 
 1. High availability - Multi-AZ
 2. Healthcheck  
  2.1 EC2 status check - checking VM health  
  2.2 **ELB Health check - checking application**  
-3. ASG will launch a new ins after terminating an unhealth one
-4. ASG won;t reboot unhealth hosts
+3. ASG will launch a new ins after terminating an unhealthy one
+4. ASG won;t reboot unhealthy hosts
 5. CLI  
  5.1 set-instance-health  
  5.2 terminate-instance-in-auto-scaling-group
@@ -88,6 +99,12 @@ You can not only define scaling policy based on aws metrics but also custom metr
 
 ### __CloudWatch Metrics for ASG__
 
+**Custom metrics Dashboard**
+
+1. add a text widget
+2. select appropriate metric from custom namespace
+3. add to dashboard.
+
 ## __Beanstalk for SysOps__
 
 1. Logs go to CloudWatch
@@ -96,10 +113,10 @@ You can not only define scaling policy based on aws metrics but also custom metr
  3.1 All at once: downtime  
  3.2 Rolling  
  3.3 Rolling with additional batches  
- 3.4 Immutable: new ASG, swap all the intances  
+ 3.4 Immutable: new ASG, swap all the instances  
  3.5 Blue/Green: swap URL  
 4. custom domain: Route53 ALIAS or CNAME on Beanstalk URL
-5. no need for patching the runtimes: Node.js, PHP..
+5. no need for patching the runtime: Node.js, PHP..
 
 ## __E2 Storage__
 
@@ -112,7 +129,7 @@ You can not only define scaling policy based on aws metrics but also custom metr
 2. locked to AZ, snapshot to move across AZ
 3. Provisioned capacity GBs IOPS
 4. types  
- 4.1 GP2 SSD: general pupose SSD  
+ 4.1 GP2 SSD: general purpose SSD  
   4.1.1 ec2 boot volume  
   4.1.2 I/O burst  
  4.2 IO1 SSD: highest performance SSD, more than 16,000 IOPS(GP2 limit), best choice for DB storage, max ratio 50:1 IOPS:GB  
@@ -141,13 +158,13 @@ You can not only define scaling policy based on aws metrics but also custom metr
  7.4 can be copied across AZ  
  7.5 can make AMI from snapshot  
  7.6 EBS restored from a snapshot need to be pre-warmed ( using fio or dd command to read entire volume)  
- 7.7 snapshot can be automated using Amzon Data Lifecycle Manager( **via CloudWatch Event - scheduled**)  
+ 7.7 snapshot can be automated using Amazon Data Lifecycle Manager( **via CloudWatch Event - scheduled**)  
 8. Encryption  
  8.1 Data at rest/data in flight/snapshot/volumes restored from snapshot all encrypted  
  8.2 minimal impact on latency  
  8.3 encrypt key from KMS  
- 8.4 copy an unencrypted snapshot allows encryption  
- 8.5 To encrypt an unencrypted EBS volume  
+ 8.4 copy an un-encrypted snapshot allows encryption  
+ 8.5 To encrypt an un-encrypted EBS volume  
 
     ```code
     create snapshot of the volume
@@ -158,7 +175,7 @@ You can not only define scaling policy based on aws metrics but also custom metr
 
 #### __EBS vs EC2 Instance Store__
 
-1. some instacne don't come with EBS root volume, instead they have "Instance Store" = ephemeral stoarege
+1. some instance don't come with EBS root volume, instead they have "Instance Store" = ephemeral storage
 2. physically attached to the machine compared to EBS as a network drive
 3. good performance, very high IOPS, best for cache, buffer
 4. cannot resize, backup by user, lost after termination
@@ -178,8 +195,8 @@ You can not only define scaling policy based on aws metrics but also custom metr
 
 1. Managed Network File System - NFS, works with EC2 in multi-AZ. 
 2. Highly available, scalable, expense 3X gp2, pay per use
-3. Content management, web servering, data sharing, wordpress..
-4. NFSV4.1
+3. Content management, web severing, data sharing, wordpress..
+4. NFS V4.1
 5. security group to control access to EFS
 6. EFS scale:  
  6.1 1000s of concurrent NFS clients, 10GB+ throughput  
@@ -190,10 +207,18 @@ You can not only define scaling policy based on aws metrics but also custom metr
 
 ## __S3 for SysOps__
 
+## S3 Encryption
+
+Default encryption only support bucket level.
+
+SSE-S3: s3:x-amz-server-side-encryption: true
+
+SSE-KMS
+
 ### Retention
 
 1. object level - specify a Retain Until Date.
-2. bucket default - specifiy a duration.
+2. bucket default - specify a duration.
 
 ### S3 server access log vs CloudTrail
 
@@ -214,9 +239,9 @@ CloudTrail only log bucket-level API calls.
  2.1 permanently delete an object version  
  2.2 suspend versioning  
 3. You won't need MFA for
- 3.1 enabling versioinging  
+ 3.1 enabling versioning  
  3.2 listing deleted versions  
-4. Only **bucket owner(root acount)** can enable/disable MFA delete
+4. Only **bucket owner(root account)** can enable/disable MFA delete
 5. MFA delete can only be enabled using CLI
 
 ### __S3 Replication: CRR & SRR__
@@ -234,13 +259,17 @@ Notes:
  2.1 can replicate delete marker  
  2.2 Deletions with a version ID are not replicated  
 3. No chaining of replication: bucket 1 -> bucket 2 -> bucket 3  
- Objects created in bucket 1 won't be reploicated to bucket 3.
+ Objects created in bucket 1 won't be replicated to bucket 3.
 
 ### __S3 Pre-signed URL__
 
 ### __CloudFront__
 
 Content Delivery Network, improve read performance, content is cached at the edge. DDoS protection, integration with Shield, AWS Web Application Firewall. Expose external HTTPS and talk to internal HTTPS backends.
+
+### WAF
+
+string match to find the ID of front-end server.
 
 #### __CloudFront - Origins__
 
@@ -258,7 +287,7 @@ Content Delivery Network, improve read performance, content is cached at the edg
 
 CloudFront
 
-1. CF is Global Edge Netowrk  
+1. CF is Global Edge Network  
 2. Files are cached for a TTL(like a day)  
 3. Great for static content  
 
@@ -276,7 +305,7 @@ S3 CRR
 
 ### __S3 Analytics__
 
-1. help determine when to transition objects from standard to standar IA
+1. help determine when to transition objects from standard to standard IA
 2. does not work for ONEZONE_IA or Glacier
 3. daily report
 4. helps work out Lifecycle rules
@@ -292,7 +321,7 @@ S3 CRR
 #### __S3 baseline performance__
 
 1. auto scale, low latency to the first byte read, 100-200ms
-2. 3500 PUT/COPY/DELETE/POST 5000 GET/HEAD per seond per prefix in a bucket
+2. 3500 PUT/COPY/DELETE/POST 5000 GET/HEAD per second per prefix in a bucket
 3. object path = prefix
 
     ```code
@@ -308,16 +337,22 @@ If you use SSE-KMS, you may be impacted by the KMS limits.
 2. Download will call Decrypt KMS API
 3. KMS quota might be different 5500, 10,000, 30,000 based on region. You can request a quota increase using Service Quota Console.
 
+### CMK
+
+1. you cannot import a new key material into a CMK
+2. CMK doesn't support auto rotation
+3. So to achieve CMK rotation, you need to leverage key alias. Point to a new CMK key to "rotate" an old CMK..
+
 #### __S3 write performance__
 
 1. multi-part upload, 1G, 5G must
-2. Transfer acceleration, through edge location to target S3 bucket. Compatible with multi-part upoad
+2. Transfer acceleration, through edge location to target S3 bucket. Compatible with multi-part upload
 
 #### __S3 read performance - S3 Byte-Range Fetches__
 
 Parallelize GETs by requesting specific byte ranges, better resilience in case of failures.
 
-Can be used to speed up downloads, and also to retrive partial data (for example, head of file).
+Can be used to speed up downloads, and also to retrieve partial data (for example, head of file).
 
 ### __S3 Snowball__
 
@@ -349,7 +384,7 @@ Bridge between on-premise data and cloud data in AWS
  3.2 tape backup solution
  ![image](./images/tape-gateway-diagram.png)
 
-#### AWS Storage Clould Native Options
+#### AWS Storage Cloud Native Options
 
 1. Block: Amazon EBS, EC2 Instance Storage
 2. File: Amazon EFS
@@ -357,7 +392,7 @@ Bridge between on-premise data and cloud data in AWS
 
 ### Athena
 
-1. Severless data analytics directly agains S3 files.
+1. Serverless data analytics directly against S3 files.
 2. SQL language to query files
 3. Has JDBC/ODBC driver
 
@@ -411,9 +446,9 @@ Troubleshoot:
 
 ### Multi AZ VS Read Replics
 
-Multi AZ|Read Replics
+Multi AZ|Read Replicas
 ----------------------------|----------------------------
-increas availability|increas read scaling
+increase availability|increase read scaling
 has to be in one region| can be with AZ, cross AZ, cross Region
 one DNS endpoint|each read replica has its one DNS endpoint
 x| read replicas can be Multi-AZ
@@ -428,12 +463,14 @@ low maintenance impact | x
 3. static parameters applied after db instance reboot
 4. can modify parameter group associated with a DB( need reboot)
 
-### Must-know paramter
+### Must-know parameter
 
 > PostgreSQL / SQL Server: rds.force_ssl=1 => force ssl conn
 > MySQL/Maria DB: GRANT SELECT ON...REQUIRE SSL;
 
 ### ElastiCache
+
+ElastiCache Memcached Engine node type is immutable. You need to create a new cluster with a new node type to scale up, and then point your application to the new endpoints.
 
 #### Redis VS Memcached
 
@@ -458,8 +495,8 @@ Create canaries, configurable scripts that run on a schedule, to monitor endpoin
 ### CloudWatch Alarm
 
 1. can be created based on CloudWatch Logs Metrics Filters
-2. doesn't test or validat the actions that is assigned
-3. To test alarm and notifications, set the alarm statte to Alarm using CLI
+2. doesn't test or validate the actions that is assigned
+3. To test alarm and notifications, set the alarm state to Alarm using CLI
 
 ```code
 aws acloudwatch set-alarm-state --alarm-name "myalarm" --state-value ALARM --state-reason "testing"
@@ -475,7 +512,7 @@ aws acloudwatch set-alarm-state --alarm-name "myalarm" --state-value ALARM --sta
 
 2. CloudTrail:  
 
-- Record API calss made within you aws acount
+- Record API calls made within you aws account
 - can define trails for specific resources
 - global service
 - log file integrity to keep logs temper-proof
@@ -517,10 +554,10 @@ Setup a customer gateway on Data Center, a Virtual Private gateway on VPC, and s
 
 ### Direct Connect
 
-Setup a Virtual Private Gateway on VPC, and establish a direct private conntion to AWS Direct Connect Location
+Setup a Virtual Private Gateway on VPC, and establish a direct private connection to AWS Direct Connect Location
 Data in transit is not Encrypted.
 
-### Dicrect Connect Gateway: to multiple VPC in different regions
+### Direct Connect Gateway: to multiple VPC in different regions
 
 ### Egress only Internet Gateway
 
@@ -531,11 +568,14 @@ Data in transit is not Encrypted.
 
 Enables you to connect to services powered by AWS PrivateLink, restricts all network traffic within AWS network.
 
+### VPC Peering
+
+Inter-region VPC peering encrypt inter-region traffic which always stays on global AWS backbone and never traverses the public internet.
 ## Route53
 
 A record: hostname to IP
 CNAME: hostname to  hostname, only works for non-root domain.
-Alias: hostname to aws resource, also works for root domain.
+Alias: hostname to aws resource(can be in a diff account), also works for root domain.
 
 DNS cache on client side for TTL duration
 
@@ -549,11 +589,11 @@ EC2 only as Inspector agent need to be installed.
  2.1 security  
  2.2 CIS  
  2.3 common vul  
- 2.4 runtime behaviour  
+ 2.4 runtime behavior  
 
 ## GuardDuty
 
-Intelligent threat discoery to protect AWS account.
+Intelligent threat discovery to protect AWS account.
 
 Input:
 
@@ -571,6 +611,9 @@ Analyze your account and provides recommendation:
 4. security
 5. service limit
 
+## Cost Explorer
+
+Use Tag Editor to create new tag, then use Billing and Cost Mgmt to make any tags as user-defined cost allocation tags to track cost.
 
 ## KMS VS HSM
 
@@ -589,5 +632,5 @@ Support multi-accounts env.
 
 ## PV vs HVM
 
-PV(Paravirtual ) AMIs aren't supported in all AWS region. You need to create a new HVM instacne, copy the EBS volumes attached to the old PV instance.
+PV(Paravirtual) AMIs aren't supported in all AWS region. You need to create a new HVM instance, copy the EBS volumes attached to the old PV instance.
 
