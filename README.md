@@ -1,6 +1,53 @@
 # AWS Sysops Notes
 
+## System Manager
+
+1. Document  
+ 1.1 AWSSupport-ExecuteEC2Rescue to recover impaired instances  
+2.
+## AWS EventBridge
+
+Severless event bus connecting applications using event.
+
+Needs proper permission to make api calls. For Lambda, Amazon SNS, Amazon SQS, and Amazon CloudWatch Logs resources, EventBridge relies on resource-based policies. For Kinesis streams, EventBridge relies on IAM roles.
+## EC2
+
+### Spot instance
+
+Spot **block** instance -  Spot instances with a specified duration
+### On-Demond Capacity Reservation:
+
+1. reserve capacity in an AZ
+2. does not offer any billing discount
+3. cannot be used for placement group or dedicated host.
+4. not transferable but can be shared
+
+### AMI sharing
+
+1. can only share AMI have unencrypted volumes and volumes encrypeted with a customer-managed CMK
+2. CMK must be shared too.
+3. don't need to share the EBS snapshot that AMI references to share AMI.
+
+## AWS Directory Services
+
+Default inbould rules allow 0.0.0.0/0 but it's not security concern.
+Refs: [AWS FAQ](https://aws.amazon.com/premiumsupport/faqs/)
+
+## CloudFormation
+
+IAM resource is globally unique w/ your account. If try to create same IAM resource in different region via CF, your stack might share these resource and behavior oddly.
+
+### **StackSets**
+
+[what is StackSets](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/what-is-cfnstacksets.html)
+
+1. allows to roll out CloudFormation stacks over multiple accounts and regions
+2. offers the option for automatically creating or removing your CloudFormation stacks when a new AWS account joins or quits your Organization
+3. 
+
 ## ELB
+
+Notes: If all nodes are unhealthy, ELB will route traffic to unhealthy nodes.
 
 ### __ELB for SysOps__
 
@@ -68,7 +115,7 @@ You can not only define scaling policy based on aws metrics but also custom metr
  4.1 GP2 SSD: general pupose SSD  
   4.1.1 ec2 boot volume  
   4.1.2 I/O burst  
- 4.2 IO1 SSD: highest performance SSD, more than 16,000 IOPS(GP2 limit), best choice for DB storage  
+ 4.2 IO1 SSD: highest performance SSD, more than 16,000 IOPS(GP2 limit), best choice for DB storage, max ratio 50:1 IOPS:GB  
  4.3 STI HDD: low cost HDD for frequently accessed, throughput intensive workloads. bigdata, and etc  
  4.4 SCI HDD: lowest cost HDD for infrequent access  
 5. computing MB/s based on IOPS  
@@ -94,7 +141,7 @@ You can not only define scaling policy based on aws metrics but also custom metr
  7.4 can be copied across AZ  
  7.5 can make AMI from snapshot  
  7.6 EBS restored from a snapshot need to be pre-warmed ( using fio or dd command to read entire volume)  
- 7.7 snapshot can be automated using Amzon Data Lifecycle Manager  
+ 7.7 snapshot can be automated using Amzon Data Lifecycle Manager( **via CloudWatch Event - scheduled**)  
 8. Encryption  
  8.1 Data at rest/data in flight/snapshot/volumes restored from snapshot all encrypted  
  8.2 minimal impact on latency  
@@ -143,6 +190,17 @@ You can not only define scaling policy based on aws metrics but also custom metr
 
 ## __S3 for SysOps__
 
+### Retention
+
+1. object level - specify a Retain Until Date.
+2. bucket default - specifiy a duration.
+
+### S3 server access log vs CloudTrail
+
+Server access logging is free, default disable. Can log very detailed access info, saved into another S3 bucket.
+
+CloudTrail only log bucket-level API calls.
+
 ### __S3 versioning for SysOps__
 
 1. encrypt a file will create a new version to protect data loss
@@ -188,7 +246,7 @@ Content Delivery Network, improve read performance, content is cached at the edg
 
 1. S3 bucket  
  1.1 distributing files and caching them at the edge  
- 1.2 enhanced security with OAI Origin Access Identity  
+ 1.2 enhanced security with OAI(Origin Access Identity). Cannot use when S3 used as a website endpoint, but customer origin can be used.  
  1.3 CloudFront can be used as an ingress(to upload files to S3)  
 2. Custom Origin (HTTP)  
  2.1 Application LB, must be public IP and allow ingress from CloudFront  
@@ -319,6 +377,11 @@ Free Mem | Active Mem | Swap Free | Process Running | File system used
 4. replica can be promoted to their own DB
 5. Application must update the conn string to leverage read replicas
 
+Troubleshoot:
+
+1. writing to a read replica can break replication
+2. `max_allowed_packet` is slower than source DB can cause error.
+
 ### RDS Multi AZ (DR)
 
 1. SYNC replication
@@ -383,8 +446,15 @@ Backup and restore | Multi-thread feature
 
 ## Monitoring Auditing and Performance
 
-### CloudWatch Metrics
+### CloudWatch
 
+1. Needs to be installed on EC2
+2. Needs IAM role attached to EC2 to run CloudWatch agent
+3. for windows, using StatsD
+
+### CloudWatch Synthetics
+
+Create canaries, configurable scripts that run on a schedule, to monitor endpoints/APIs, acting like a customer.
 ### CloudWatch Alarm
 
 1. can be created based on CloudWatch Logs Metrics Filters
@@ -395,7 +465,7 @@ Backup and restore | Multi-thread feature
 aws acloudwatch set-alarm-state --alarm-name "myalarm" --state-value ALARM --state-reason "testing"
 ```
 
-### CloudWatch vs CloudTrail vs Config
+### CloudWatch vs CloudTrail vs AWS Config
 
 1. CloudWatch:  
 
@@ -406,14 +476,15 @@ aws acloudwatch set-alarm-state --alarm-name "myalarm" --state-value ALARM --sta
 2. CloudTrail:  
 
 - Record API calss made within you aws acount
-- can defin trails for specific resources
+- can define trails for specific resources
 - global service
 - log file integrity to keep logs temper-proof
 
-3. Config
+3. AWS Config
 
-- Record config change
-- Evaluate resources against compliance rules
+- Record AWS resources config change
+- Evaluate AWS resources against compliance rules
+- Auto remediation feature remediates non-compliant resources
 - Get timeline of changes and compliance
 
 ## VPC
@@ -455,6 +526,10 @@ Data in transit is not Encrypted.
 
 1. Only works for IPv6
 2. Similar function to NAT gateway for IPv4
+
+### VPC endpoint
+
+Enables you to connect to services powered by AWS PrivateLink, restricts all network traffic within AWS network.
 
 ## Route53
 
