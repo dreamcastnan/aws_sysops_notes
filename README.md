@@ -1,5 +1,17 @@
 # AWS Sysops Notes
 
+## AWS Service Catalog
+
+**Portfolio** 
+A portfolio is a collection of products, together with configuration information. Helps manage who can use specific products and how they can use them. Granting a user access to a portfolio enables the user to view it and launch the products in it.
+
+**Product** 
+To create a product, you first create an AWS CloudFormation template by using an existing AWS CloudFormation template or creating a custom template. Next, you use the AWS Service Catalog console to upload the template and create the product.
+
+## AWS Health API
+
+You can query AWS Health API for upcoming maintenance events.
+
 ## AWS Organization
 
 You can send an invite to existing accounts, to link them to the central organization.
@@ -8,18 +20,21 @@ You can send an invite to existing accounts, to link them to the central organiz
 
 1. Document  
  1.1 AWSSupport-ExecuteEC2Rescue to recover impaired instances  
-2.
+2. Does NOT monitor underlying hardware. EC2 status check monitor the hardware, and CloudWatch can respond to status check alarms and restart instances.
+
 ## AWS EventBridge
 
 Serverless event bus connecting applications using event.
 
 Needs proper permission to make api calls. For Lambda, Amazon SNS, Amazon SQS, and Amazon CloudWatch Logs resources, EventBridge relies on resource-based policies. For Kinesis streams, EventBridge relies on IAM roles.
+
 ## EC2
 
 ### Spot instance
 
 Spot **block** instance -  Spot instances with a specified duration
-### On-Demond Capacity Reservation:
+
+### On-Demand Capacity Reservation:
 
 1. reserve capacity in an AZ
 2. does not offer any billing discount
@@ -57,6 +72,7 @@ Notes: If all nodes are unhealthy, ELB will route traffic to unhealthy nodes.
 
 1. static IP only for NLB
 2. support SSL for older browsers: change LB security group to support a weaker cipher
+3. ALB attribute "Drop invalid header fields" can be used to block malformed HTTP headers requests to protect EC2 from attacks.
 
 ### To deploy a new app version to EC2 behind an ALB created by CloudFormation
 
@@ -178,7 +194,7 @@ You can not only define scaling policy based on aws metrics but also custom metr
 1. some instance don't come with EBS root volume, instead they have "Instance Store" = ephemeral storage
 2. physically attached to the machine compared to EBS as a network drive
 3. good performance, very high IOPS, best for cache, buffer
-4. cannot resize, backup by user, lost after termination
+4. cannot resize, backup by user, lost after termination, stop and start. **But data remains after instance reboot**.
 
 #### __EBS RAID__
 
@@ -269,7 +285,9 @@ Content Delivery Network, improve read performance, content is cached at the edg
 
 ### WAF
 
-string match to find the ID of front-end server.
+1. string match to find the ID of front-end server.
+2. Be used in front of CloudFront distributions, ALBs and API Gateways.
+3. mitigate cross-site scripting attack
 
 #### __CloudFront - Origins__
 
@@ -551,6 +569,8 @@ aws acloudwatch set-alarm-state --alarm-name "myalarm" --state-value ALARM --sta
 ### Site to Site VPN
 
 Setup a customer gateway on Data Center, a Virtual Private gateway on VPC, and site-to-site VPN over internet
+
+![image](./images/s2s_vpn.jpeg)
 
 ### Direct Connect
 
