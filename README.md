@@ -1,9 +1,26 @@
 # AWS Sysops Notes
 
+## Notes
+
+1. Federation login could be tracked via CloudTrail by recording the AWS Security Token Service API calls.
+2. a maintenance window: RDS and ElastiCache supports custom maintenance window.
+3. Redshift Spectrum: You cannot use query editor along with enhanced VPC routing enabled.
+4. IAM role vs IAM group: group is a collection of similar IAM users. You still need IAM role to define the access needed.
+5. ACM(AWS certificate manager): You must own the domain name that you register your certificate for.
+6. AD Connector is designed to give you an easy way to establish a trusted relationship between your Active Directory and AWS
+
+## Service Health Dashboard vs Personal health dashboard
+
+Service health dashboard only shows current information, not planned maintenance activities
+
+Personal Health Dashboard provides alerts and remediation guidance when AWS is experiencing events that may impact you.
+
 ## AWS Service Catalog
 
 **Portfolio** 
 A portfolio is a collection of products, together with configuration information. Helps manage who can use specific products and how they can use them. Granting a user access to a portfolio enables the user to view it and launch the products in it.
+
+**A recipient administrator can add imported products to local portfolios. The products will stay in sync with the shared portfolio. However, the recipient administrator cannot upload or add products to the imported portfolio or remove products from the imported portfolio.**
 
 **Product** 
 To create a product, you first create an AWS CloudFormation template by using an existing AWS CloudFormation template or creating a custom template. Next, you use the AWS Service Catalog console to upload the template and create the product.
@@ -92,6 +109,14 @@ You can not only define scaling policy based on aws metrics but also custom metr
 **ASG is free.**
 
 **Launch configuration is immutable, cannot update. Only recreate.**
+
+### Auto Scaling lifecycle hook
+
+As an example of using lifecycle hooks with Auto Scaling instances:
+
+When a scale-out event occurs, your newly launched instance completes its startup sequence and transitions to a wait state. While the instance is in a wait state, it runs a script to download and install the needed software packages for your application, making sure that your instance is fully ready before it starts receiving traffic. When the script is finished installing software, it sends the complete-lifecycle-action command to continue.
+
+When a scale-in event occurs, a lifecycle hook pauses the instance before it is terminated and sends you a notification using Amazon EventBridge. While the instance is in the wait state, you can invoke an AWS Lambda function or connect to the instance to download logs or other data before the instance is fully terminated.
 
 ### __ASG for SysOps__
 
@@ -208,6 +233,8 @@ You can not only define scaling policy based on aws metrics but also custom metr
 3. Status: OK Warning Impaired
 
 #### __EFS__
+
+Follow NFS protocol to allow multiple instances in diff AZs to connect a single file system. **EBS multi-attach cannot across availability zones.**
 
 1. Managed Network File System - NFS, works with EC2 in multi-AZ. 
 2. Highly available, scalable, expense 3X gp2, pay per use
@@ -357,9 +384,11 @@ If you use SSE-KMS, you may be impacted by the KMS limits.
 
 ### CMK
 
+![image](./images/aws_kms.png)
+
 1. you cannot import a new key material into a CMK
-2. CMK doesn't support auto rotation
-3. So to achieve CMK rotation, you need to leverage key alias. Point to a new CMK key to "rotate" an old CMK..
+2. ~~CMK doesn't support auto rotation~~ It supports, but you can manually rotate keys to control rotation frequency, and asymmetric keys no eligible for auto rotation.
+3. ~~So to achieve CMK rotation, you need to leverage key alias. Point to a new CMK key to "rotate" an old CMK..~~
 
 #### __S3 write performance__
 
@@ -442,11 +471,21 @@ Troubleshoot:
 3. increase availability
 4. not used for scaling
 
+### RDS failover
+
+1. AZ outage
+2. Primary DB fails
+3. DB instances' server type is changed
+4. operating system of DB instances is undergoing maintenance
+5. manual failover initiated by Reboot with failover function.
+
 ### RDS backups
 
 1. auto enabled
 2. daily full snapshot of db
 3. capture TXN logs in real time
+
+**You cannot copy an automated DB snapshot. Instead, you can share a manual DB snapshot encrypted or un-encrypted with other AWS accounts.**
 
 ### RDS Encryption
 
@@ -519,6 +558,10 @@ Create canaries, configurable scripts that run on a schedule, to monitor endpoin
 ```code
 aws acloudwatch set-alarm-state --alarm-name "myalarm" --state-value ALARM --state-reason "testing"
 ```
+
+### CloudWatch event
+
+Different to CloudWatch alarm for metric breaches, instead it's for **state changes**.
 
 ### CloudWatch vs CloudTrail vs AWS Config
 
@@ -653,4 +696,3 @@ Support multi-accounts env.
 ## PV vs HVM
 
 PV(Paravirtual) AMIs aren't supported in all AWS region. You need to create a new HVM instance, copy the EBS volumes attached to the old PV instance.
-
